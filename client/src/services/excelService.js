@@ -229,17 +229,18 @@ export function workbookToData(wb) {
  */
 export async function loadPortfolioData() {
   // Check localStorage first
-  const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      if (parsed?.profile?.name) {
-        return parsed;
-      }
-    } catch (e) {
-      console.warn('Invalid localStorage portfolio data, reading Excel file instead.');
-    }
-  }
+  
+  // const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+  // if (stored) {
+  //   try {
+  //     const parsed = JSON.parse(stored);
+  //     if (parsed?.profile?.name) {
+  //       return parsed;
+  //     }
+  //   } catch (e) {
+  //     console.warn('Invalid localStorage portfolio data, reading Excel file instead.');
+  //   }
+  // }
 
   // Read public Excel file directly
   try {
