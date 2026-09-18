@@ -226,7 +226,11 @@ const seedData = {
       issuer: "Certified Masterclass (2023)",
       description: "Comprehensive backend architecture and REST API development certification."
     }
-  ]
+  ],
+  admin: {
+    username: "admin",
+    password: "admin@portfolio2026"
+  }
 };
 
 export default seedData;

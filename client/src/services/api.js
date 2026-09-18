@@ -42,7 +42,7 @@ export const portfolioService = {
 
   changeCredentials: async ({ currentPassword, newUsername, newPassword }) => {
     try {
-      updateAdminCredentials(currentPassword, newUsername, newPassword);
+      await updateAdminCredentials(currentPassword, newUsername, newPassword);
       return { success: true };
     } catch (err) {
       const error = new Error(err.message);

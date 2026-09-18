@@ -83,6 +83,15 @@ export function dataToWorkbook(data) {
     description: ach.description || ''
   }));
 
+  // 7. Admin Sheet (stores admin login credentials in Excel)
+  const adminRows = [
+    {
+      Username: data.admin?.username || 'admin',
+      Password: data.admin?.password || 'admin@portfolio2026',
+      UpdatedAt: new Date().toISOString()
+    }
+  ];
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(profileRows), 'Profile');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(experienceRows), 'Experience');
@@ -90,6 +99,7 @@ export function dataToWorkbook(data) {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(skillRows), 'Skills');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(educationRows), 'Education');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(achievementRows), 'Achievements');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(adminRows), 'Admin');
 
   return wb;
 }
@@ -185,15 +195,31 @@ export function workbookToData(wb) {
   // 6. Achievements
   if (wb.Sheets['Achievements']) {
     result.achievements = XLSX.utils.sheet_to_json(wb.Sheets['Achievements']).map((row, idx) => ({
-      id: ach.id ? String(ach.id) : `ach-${idx + 1}`,
+      id: row.id ? String(row.id) : `ach-${idx + 1}`,
       title: row.title ? String(row.title) : '',
       issuer: row.issuer ? String(row.issuer) : '',
       description: row.description ? String(row.description) : ''
     }));
   }
 
+  // 7. Admin Credentials (read directly from Admin sheet in Excel)
+  if (wb.Sheets['Admin']) {
+    const aRows = XLSX.utils.sheet_to_json(wb.Sheets['Admin']);
+    if (aRows.length > 0) {
+      result.admin = {
+        username: aRows[0].Username ? String(aRows[0].Username).trim() : 'admin',
+        password: aRows[0].Password ? String(aRows[0].Password).trim() : 'admin@portfolio2026'
+      };
+    }
+  }
+
+  if (!result.admin) {
+    result.admin = { ...seedData.admin };
+  }
+
   return result;
 }
+
 
 /**
  * Loads portfolio data directly in the browser:
@@ -353,34 +379,50 @@ export function resetPortfolioData() {
 }
 
 /**
- * In-browser Admin authentication (No backend needed)
+ * In-browser Admin authentication backed by the Excel Sheet
  */
-export function getAdminCredentials() {
-  const stored = localStorage.getItem(ADMIN_CONFIG_KEY);
+export function getAdminCredentials(data) {
+  if (data?.admin?.username && data?.admin?.password) {
+    return {
+      username: data.admin.username,
+      password: data.admin.password,
+      token: 'client_yashwant_token_2026'
+    };
+  }
+
+  const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (stored) {
     try {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      if (parsed?.admin?.username && parsed?.admin?.password) {
+        return {
+          username: parsed.admin.username,
+          password: parsed.admin.password,
+          token: 'client_yashwant_token_2026'
+        };
+      }
     } catch (e) {
       // fallback
     }
   }
-  const defaultCreds = {
-    username: 'admin',
-    password: 'admin@portfolio2026',
+
+  return {
+    username: seedData.admin?.username || 'admin',
+    password: seedData.admin?.password || 'admin@portfolio2026',
     token: 'client_yashwant_token_2026'
   };
-  localStorage.setItem(ADMIN_CONFIG_KEY, JSON.stringify(defaultCreds));
-  return defaultCreds;
 }
 
-export function updateAdminCredentials(currentPassword, newUsername, newPassword) {
-  const creds = getAdminCredentials();
+export async function updateAdminCredentials(currentPassword, newUsername, newPassword) {
+  const data = await loadPortfolioData();
+  const creds = getAdminCredentials(data);
   if (currentPassword !== creds.password) {
     throw new Error('Current password does not match.');
   }
-  if (newUsername) creds.username = newUsername.trim();
-  if (newPassword) creds.password = newPassword.trim();
-  localStorage.setItem(ADMIN_CONFIG_KEY, JSON.stringify(creds));
+  if (!data.admin) data.admin = {};
+  if (newUsername) data.admin.username = newUsername.trim();
+  if (newPassword) data.admin.password = newPassword.trim();
+  savePortfolioData(data);
   return true;
 }
 
@@ -392,3 +434,4 @@ export function verifyAdminLogin(username, password) {
   }
   return { success: false, message: 'Invalid username or password.' };
 }
+
